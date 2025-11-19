@@ -1,0 +1,20 @@
+[core]
+	repositoryformatversion = 0
+	filemode = true
+	bare = false
+	logallrefupdates = true
+[remote "b7j0c"]
+ 	url = ssh://b7j0c-git/srv/git/grokloc-go
+	fetch = +refs/heads/*:refs/remotes/b7j0c/*
+[remote "github"]
+	url = git@github.com:bradclawsie/grokloc-go.git
+	fetch = +refs/heads/*:refs/remotes/github/*
+[remote "sr.ht"]
+	url = git@git.sr.ht:~bradclawsie/grokloc-go
+	fetch = +refs/heads/*:refs/remotes/sr.ht/*
+[remote "codeberg"]
+	url = ssh://git@codeberg.org/bradclawsie/grokloc-go.git
+	fetch = +refs/heads/*:refs/remotes/codeberg/*
+[branch "master"]
+	remote = origin
+	merge = refs/heads/master
