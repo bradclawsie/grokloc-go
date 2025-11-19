@@ -1,0 +1,23 @@
+image: archlinux
+environment:
+  PATH: $HOME/go/bin:/usr/local/sbin:/usr/local/bin:/usr/bin
+packages:
+  - curl
+  - go
+  - golangci-lint
+  - just
+  - postgresql
+  - postgresql-libs
+  - staticcheck
+  - sudo
+  - valkey
+tasks:
+  - services: |
+      pushd grokloc-go
+      echo $PATH
+      sudo just initdb
+      sudo systemctl start postgresql.service
+      sudo systemctl start valkey.service
+  - setup: |
+      pushd grokloc-go
+      just setup
