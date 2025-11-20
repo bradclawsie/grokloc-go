@@ -1,6 +1,6 @@
 set shell := ["bash", "-c"]
 set dotenv-load := true
-set dotenv-filename := "dotenv-unit"
+set dotenv-filename := ".env-unit"
 set dotenv-required := true
 
 default:
@@ -13,6 +13,21 @@ pkgs:
     go install github.com/securego/gosec/v2/cmd/gosec@latest
     go install github.com/google/capslock/cmd/capslock@latest
 
+build:
+    go build ./...
+
+lint:
+    golangci-lint --timeout=24h run pkg/... && staticcheck ./... && go vet ./... && govulncheck ./... && gosec ./...
+
+test:
+    go test -race -v ./...
+
+vendor:
+    go get -u ./...
+    go mod tidy
+    go mod download
+    go mod vendor
+    go build ./...
 # -- Database rules.
 
 # Init db from nothing.
@@ -22,29 +37,29 @@ initdb:
 
 # DB users.
 create-users:
-    sudo -u postgres psql --file=db/00-create-users.sql
+    sudo -u postgres psql --file=internal/sql/00-create-users.sql
 
 # Create databases.
 create-databases:
-    sudo -u postgres psql --file=db/01-create-databases.sql
+    sudo -u postgres psql --file=internal/sql/01-create-databases.sql
 
 # Grants.
 alter-grants:
-    sudo -u postgres psql --dbname="test" --file=db/02-alter-grants.sql
-    sudo -u postgres psql --dbname="app" --file=db/02-alter-grants.sql
-    sudo -u postgres psql --dbname="grokloc" --file=db/02-alter-grants.sql
+    sudo -u postgres psql --dbname="test" --file=internal/sql/02-alter-grants.sql
+    sudo -u postgres psql --dbname="app" --file=internal/sql/02-alter-grants.sql
+    sudo -u postgres psql --dbname="grokloc" --file=internal/sql/02-alter-grants.sql
 
 # Create schema.
 apply-schema:
-    psql --username="grokloc" --dbname="app" --file=db/03-schema.sql
+    psql --username="grokloc" --dbname="app" --file=internal/sql/03-schema.sql
 
 # Truncate all tables.
 truncate:
-    psql --username="grokloc" --dbname="app" --file=db/04-truncate-tables.sql
+    psql --username="grokloc" --dbname="app" --file=internal/sql/04-truncate-tables.sql
 
 # Drop all tables.
 drop:
-    psql --username="grokloc" --dbname="app" --file=db/05-drop-tables.sql
+    psql --username="grokloc" --dbname="app" --file=internal/sql/05-drop-tables.sql
 
 # Recreate everything.
 recreate: drop apply-schema
