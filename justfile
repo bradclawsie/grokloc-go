@@ -28,6 +28,7 @@ vendor:
     go mod download
     go mod vendor
     go build ./...
+
 # -- Database rules.
 
 # Init db from nothing.
@@ -75,5 +76,6 @@ root_psql:
 # -- CI rules.
 
 # Set up everything for development from nothing.
-setup:
+ci-setup:
     just create-users create-databases alter-grants apply-schema pkgs
+    sudo cp ~/go/bin/* /usr/local/bin/.

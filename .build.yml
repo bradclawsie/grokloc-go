@@ -14,10 +14,12 @@ packages:
 tasks:
   - services: |
       pushd grokloc-go
-      echo $PATH
       sudo just initdb
       sudo systemctl start postgresql.service
       sudo systemctl start valkey.service
   - setup: |
       pushd grokloc-go
-      just setup
+      just ci-setup
+  - test: |
+      pushd grokloc-go
+      just vendor test lint
