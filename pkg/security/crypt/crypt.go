@@ -16,11 +16,10 @@ import (
 // KeyLength for AESGCM.
 const KeyLength = 32
 
-// ErrDigest signals a checksum mismatch.
-var ErrDigest = errors.New("value does not have correct digest")
-
-// ErrNonce signals a failure to construct the nonce.
-var ErrNonce = errors.New("nonce could not be constructed")
+var (
+	ErrDigest = errors.New("value does not have correct digest")
+	ErrNonce  = errors.New("nonce could not be constructed")
+)
 
 // RandomKey returns a new random key.
 func RandomKey() []byte {
