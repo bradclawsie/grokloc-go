@@ -4,7 +4,8 @@ map to database values.
 */
 package status
 
-const Unconfirmed = 1
-const Active = 2
-const Inactive = 3
-
+const (
+	Unconfirmed = 1
+	Active      = 2
+	Inactive    = 3
+)
