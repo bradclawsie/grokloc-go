@@ -15,7 +15,7 @@ import (
 
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/matthewhartstonge/argon2"
-	"grokloc.com/pkg/security/versionkey"
+	"grokloc.com/pkg/security/key"
 )
 
 const (
@@ -28,29 +28,35 @@ var ErrEnvVar = errors.New("environment variable not found or malformed")
 
 // State contains all environment-specific runtime definitions.
 type State struct {
+	Logger *slog.Logger
+
+	// Versioning
 	Level      string
 	ApiVersion int
 
-	Logger *slog.Logger
-
+	// Database related.
 	Master      *pgxpool.Pool
 	Replicas    []*pgxpool.Pool
 	ConnTimeout time.Duration
 	ExecTimeout time.Duration
 	DefaultRole int
 
+	// Repository related.
 	RepositoryBase string
 
+	// Crypt related.
+
+	// Password hash config.
 	Argon2Config argon2.Config
 
 	// SigningKey signs JWTs.
 	SigningKey []byte
 
-	// VersionKey maps key ids to database encryption keys.
-	VersionKey *versionkey.VersionKey
+	// EncryptionKey is the current database key in use.
+	EncryptionKey []byte
 
-	// Close cleans up state before termination.
-	Close func() error
+	// KeyMap maps uuids -> keys for all permitted keys.
+	KeyMap key.VersionMap
 }
 
 // RandomReplica selects a random replica.

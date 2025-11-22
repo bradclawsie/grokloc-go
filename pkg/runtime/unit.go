@@ -15,8 +15,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/matthewhartstonge/argon2"
 	"grokloc.com/pkg/model/role"
-	"grokloc.com/pkg/security/crypt"
-	"grokloc.com/pkg/security/versionkey"
+	"grokloc.com/pkg/security/key"
 )
 
 func unit() (*State, error) {
@@ -57,36 +56,35 @@ func unit() (*State, error) {
 		return nil, repositoryBaseErr
 	}
 
-	signingKey := crypt.RandomKey()
+	signingKey := key.Random()
 
 	// Version key map.
-	// KnownKeyID will be set as a key version, not current.
-	// This value was chosen randomly.
-	const KnownKeyID = "c4d98d26-e6d4-4e75-b88b-dfbe8361757a"
-	keyMap := make(versionkey.KeyMap)
+	keyMap := make(key.VersionMap)
+	// `current` is the key in use now.
 	current := uuid.New()
-	keyMap[current] = crypt.RandomKey()
-	keyMap[uuid.New()] = crypt.RandomKey()
-	keyMap[uuid.MustParse(KnownKeyID)] = crypt.RandomKey()
+	keyMap[current] = key.Random()
+	// Previous keys, still permitted.
+	keyMap[uuid.New()] = key.Random()
+	keyMap[uuid.New()] = key.Random()
 
-	versionKey, vkErr := versionkey.New(keyMap, current)
-	if vkErr != nil {
+	st := &State{
+		Logger: logger,
 
-		return nil, vkErr
-	}
+		Level:      "unit",
+		ApiVersion: 0,
 
-	return &State{
-		Level:          "unit",
-		Logger:         logger,
-		ApiVersion:     0,
-		Master:         master,
-		Replicas:       replicas,
-		ConnTimeout:    time.Duration(1000 * time.Millisecond),
-		ExecTimeout:    time.Duration(1000 * time.Millisecond),
-		Argon2Config:   argon2Config,
+		Master:      master,
+		Replicas:    replicas,
+		ConnTimeout: time.Duration(1000 * time.Millisecond),
+		ExecTimeout: time.Duration(1000 * time.Millisecond),
+		DefaultRole: role.Test,
+
 		RepositoryBase: repositoryBase,
-		SigningKey:     signingKey,
-		VersionKey:     versionKey,
-		DefaultRole:    role.Test,
-	}, nil
+
+		Argon2Config:  argon2Config,
+		SigningKey:    signingKey,
+		EncryptionKey: keyMap[current],
+		KeyMap:        keyMap,
+	}
+	return st, nil
 }
