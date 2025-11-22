@@ -13,23 +13,10 @@ import (
 	"io"
 )
 
-// KeyLength for AESGCM.
-const KeyLength = 32
-
 var (
 	ErrDigest = errors.New("value does not have correct digest")
 	ErrNonce  = errors.New("nonce could not be constructed")
 )
-
-// RandomKey returns a new random key.
-func RandomKey() []byte {
-	bs := make([]byte, KeyLength)
-	_, err := io.ReadFull(rand.Reader, bs)
-	if err != nil {
-		panic(err)
-	}
-	return bs
-}
 
 // Encrypt returns the hex-encoded AES symmetric encryption
 // of s with key.

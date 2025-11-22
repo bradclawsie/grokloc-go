@@ -9,7 +9,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/require"
-	"grokloc.com/pkg/security/crypt"
+	"grokloc.com/pkg/security/key"
 )
 
 func TestJWT(t *testing.T) {
@@ -17,7 +17,7 @@ func TestJWT(t *testing.T) {
 		t.Parallel()
 		sub, err := uuid.NewRandom()
 		require.NoError(t, err, "random")
-		signingKey := crypt.RandomKey()
+		signingKey := key.Random()
 		tokenStr, err := Encode(sub, signingKey)
 		require.NoError(t, err, "Encode")
 		token, err := Decode(tokenStr, signingKey)
@@ -26,7 +26,7 @@ func TestJWT(t *testing.T) {
 		require.NoError(t, err, "GetSubject")
 		require.Equal(t, claimsSub, sub.String())
 
-		_, err = Decode(tokenStr, crypt.RandomKey())
+		_, err = Decode(tokenStr, key.Random())
 		require.Error(t, err, "bad signing key")
 	})
 }
