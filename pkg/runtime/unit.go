@@ -56,17 +56,6 @@ func unit() (*State, error) {
 		return nil, repositoryBaseErr
 	}
 
-	signingKey := key.Random()
-
-	// Version key map.
-	keyMap := make(key.VersionMap)
-	// `current` is the key in use now.
-	current := uuid.New()
-	keyMap[current] = key.Random()
-	// Previous keys, still permitted.
-	keyMap[uuid.New()] = key.Random()
-	keyMap[uuid.New()] = key.Random()
-
 	st := &State{
 		Logger: logger,
 
@@ -81,10 +70,14 @@ func unit() (*State, error) {
 
 		RepositoryBase: repositoryBase,
 
-		Argon2Config:  argon2Config,
-		SigningKey:    signingKey,
-		EncryptionKey: keyMap[current],
-		KeyMap:        keyMap,
+		Argon2Config: argon2Config,
+		SigningKey:   key.Random(),
+
+		EncryptionKey: key.Versioned{Version: uuid.New(), Key: key.Random()},
+		ExpiredEncryptionKeys: []key.Versioned{
+			{Version: uuid.New(), Key: key.Random()},
+			{Version: uuid.New(), Key: key.Random()},
+		},
 	}
 	return st, nil
 }
