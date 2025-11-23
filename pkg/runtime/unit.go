@@ -18,7 +18,7 @@ import (
 	"grokloc.com/pkg/security/key"
 )
 
-func unit() (*State, error) {
+func Unit() (*State, error) {
 	logger := slog.New(slog.NewJSONHandler(
 		os.Stderr,
 		&slog.HandlerOptions{AddSource: true, Level: slog.LevelError},
@@ -56,6 +56,15 @@ func unit() (*State, error) {
 		return nil, repositoryBaseErr
 	}
 
+	currentEncryptionKey := key.Versioned{
+		Version: uuid.New(),
+		Key:     key.Random(),
+	}
+	encryptionKeys := make(key.VersionedMap)
+	encryptionKeys[currentEncryptionKey.Version] = currentEncryptionKey.Key
+	encryptionKeys[uuid.New()] = key.Random()
+	encryptionKeys[uuid.New()] = key.Random()
+
 	st := &State{
 		Logger: logger,
 
@@ -73,11 +82,8 @@ func unit() (*State, error) {
 		Argon2Config: argon2Config,
 		SigningKey:   key.Random(),
 
-		EncryptionKey: key.Versioned{Version: uuid.New(), Key: key.Random()},
-		ExpiredEncryptionKeys: []key.Versioned{
-			{Version: uuid.New(), Key: key.Random()},
-			{Version: uuid.New(), Key: key.Random()},
-		},
+		EncryptionKeyVersion: currentEncryptionKey.Version,
+		EncryptionKeys:       encryptionKeys,
 	}
 	return st, nil
 }

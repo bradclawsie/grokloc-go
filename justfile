@@ -22,6 +22,9 @@ lint:
 test:
     go test -race -v ./...
 
+test-pkg PKG:
+    pushd {{ PKG }} && go test -count=1 -race -v ./...
+
 vendor:
     go get -u ./...
     go mod tidy

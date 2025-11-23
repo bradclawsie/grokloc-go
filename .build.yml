@@ -10,13 +10,11 @@ packages:
   - postgresql-libs
   - staticcheck
   - sudo
-  - valkey
 tasks:
   - services: |
       pushd grokloc-go
       sudo just initdb
       sudo systemctl start postgresql.service
-      sudo systemctl start valkey.service
   - setup: |
       pushd grokloc-go
       just ci-setup

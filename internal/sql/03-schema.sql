@@ -68,7 +68,7 @@ create table if not exists repositories (
 create table if not exists users (
   -- our columns
   ed25519_public text not null check (ed25519_public != ''),
-  ed25519_public_digest text unique not null check (ed25519_public_digest != ''),
+  ed25519_public_digest text not null check (ed25519_public_digest != ''),
   display_name text not null check (display_name != ''),
   display_name_digest text not null check (display_name_digest != ''),
   email text not null check (email != ''),
@@ -89,6 +89,7 @@ create table if not exists users (
   primary key (id));
   --indexes
   create unique index if not exists users_email_digest_org on users (email_digest, org);
+  create unique index if not exists users_ed25519_public_digest_org on users (ed25519_public_digest, org);
 
 -- triggers
 create or replace function metadata_update()

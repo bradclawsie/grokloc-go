@@ -23,9 +23,15 @@ func TestCrypt(t *testing.T) {
 		digestBytes := sha256.Sum256([]byte(s))
 		d, err := Decrypt(e, hex.EncodeToString(digestBytes[:]), k)
 		require.NoError(t, err, "decrypt fail")
-		require.Equal(t, s, d, "cannot round trip encrypted value")
+		require.Equal(t, s, d, "round trip")
 
+		// Bad key.
 		_, err = Decrypt(e, hex.EncodeToString(digestBytes[:]), key.Random())
-		require.Error(t, err, "should fail on different key")
+		require.Error(t, err, "bad key")
+
+		// Bad digest.
+		_, err = Decrypt(e, "abcd", k)
+		require.Error(t, err, "bad digest")
+		require.Equal(t, ErrDigest, err, "digest err")
 	})
 }
