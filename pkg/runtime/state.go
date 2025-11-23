@@ -53,10 +53,13 @@ type State struct {
 	SigningKey []byte
 
 	// EncryptionKey is the current database key in use.
-	EncryptionKey []byte
+	EncryptionKey key.Versioned
 
-	// KeyMap maps uuids -> keys for all permitted keys.
-	KeyMap key.VersionMap
+	// ExpiredEncryptionKeys is a list of previously
+	// used keys. Should be no more than two keys.
+	// Allows decryption of older records prior to, or during
+	// key rotation.
+	ExpiredEncryptionKeys []key.Versioned
 }
 
 // RandomReplica selects a random replica.

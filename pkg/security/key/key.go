@@ -24,6 +24,8 @@ func Random() []byte {
 	return bs
 }
 
-// VersionMap is the data structure used to hold key ids
-// (as UUIDs) -> key []byte.
-type VersionMap map[uuid.UUID][]byte
+// Versioned identifies a key with a uuid version.
+type Versioned struct {
+	Version uuid.UUID
+	Key     []byte
+}
