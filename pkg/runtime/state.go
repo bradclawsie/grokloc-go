@@ -87,3 +87,14 @@ func New() (*State, error) {
 	}
 	panic("environment not supported")
 }
+
+// Close can be run when a `State` instance is no longer needed.
+func (s *State) Close() error {
+	if s.Master != nil {
+		s.Master.Close()
+	}
+	for i := range s.Replicas {
+		s.Replicas[i].Close()
+	}
+	return nil
+}
