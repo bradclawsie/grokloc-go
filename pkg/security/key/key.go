@@ -6,13 +6,19 @@ package key
 
 import (
 	"crypto/rand"
+	"errors"
 	"io"
 
 	"github.com/google/uuid"
 )
 
-// AESGCM key length.
-const Length = 32
+const (
+	Length = 32
+)
+
+var (
+	ErrNotFound = errors.New("key version not found")
+)
 
 // Random returns a new random key.
 func Random() []byte {
@@ -28,4 +34,20 @@ func Random() []byte {
 type Versioned struct {
 	Version uuid.UUID
 	Key     []byte
+}
+
+// VersionedMap contains all versioned keys available.
+type VersionedMap map[uuid.UUID][]byte
+
+// Get returns the `Versioned` instance for a key.
+func (v VersionedMap) Get(u uuid.UUID) (*Versioned, error) {
+	key, ok := v[u]
+	if !ok {
+		return nil, ErrNotFound
+	}
+
+	return &Versioned{
+		Version: u,
+		Key:     key,
+	}, nil
 }

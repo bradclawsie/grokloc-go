@@ -13,6 +13,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/matthewhartstonge/argon2"
 	"grokloc.com/pkg/security/key"
@@ -52,14 +53,12 @@ type State struct {
 	// SigningKey signs JWTs.
 	SigningKey []byte
 
-	// EncryptionKey is the current database key in use.
-	EncryptionKey key.Versioned
+	// EncryptionKeyVersion is the version of the current encryption key.
+	EncryptionKeyVersion uuid.UUID
 
-	// ExpiredEncryptionKeys is a list of previously
-	// used keys. Should be no more than two keys.
-	// Allows decryption of older records prior to, or during
-	// key rotation.
-	ExpiredEncryptionKeys []key.Versioned
+	// EncryptionKeys is a map of version -> key for all keys
+	// available for use, including keys no longer in rotation.
+	EncryptionKeys key.VersionedMap
 }
 
 // RandomReplica selects a random replica.
@@ -83,7 +82,7 @@ func New() (*State, error) {
 		return nil, ErrEnvVar
 	}
 	if level == "unit" {
-		return unit()
+		return Unit()
 	}
 	panic("environment not supported")
 }
