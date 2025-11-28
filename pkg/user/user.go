@@ -173,6 +173,44 @@ func Read(
 	return &user, nil
 }
 
+func (u *User) NewEd25519(
+	ctx context.Context,
+	conn *pgx.Conn,
+	versionedKey key.Versioned,
+	ed25519Public string,
+) error {
+	encryptedEd25519Public, err := crypt.Encrypt(ed25519Public, versionedKey.Key)
+	if err != nil {
+		return err
+	}
+
+	const query = `update users 
+		set ed25519_public = $1, 
+		ed25519_public_digest = $2
+		where id = $3
+		returning mtime, signature, ed25519_public_digest`
+
+	err = conn.QueryRow(
+		ctx,
+		query,
+		encryptedEd25519Public,
+		digest.SHA256Hex(ed25519Public),
+		u.ID,
+	).
+		Scan(
+			&u.Mtime,
+			&u.Signature,
+			&u.Ed25519PublicDigest,
+		)
+
+	if err != nil {
+		return err
+	}
+
+	u.Ed25519Public = ed25519Public
+	return nil
+}
+
 func (u *User) UpdateStatus(
 	ctx context.Context,
 	conn *pgx.Conn,

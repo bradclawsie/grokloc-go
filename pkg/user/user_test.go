@@ -241,6 +241,56 @@ func TestRead(t *testing.T) {
 
 }
 
+func TestNewEd25519(t *testing.T) {
+	t.Run("OK", func(t *testing.T) {
+		t.Parallel()
+		conn, err := st.Master.Acquire(context.Background())
+		require.NoError(t, err, "master conn")
+		defer conn.Release()
+
+		versionKey, err := st.EncryptionKeys.Get(st.EncryptionKeyVersion)
+		require.NoError(t, err, "versionKey")
+
+		user := ForTest(
+			context.Background(),
+			conn.Conn(),
+			*versionKey,
+			uuid.New(),
+			status.Active,
+		)
+
+		mtime := user.Mtime
+		signature := user.Signature
+		require.Equal(t, status.Active, user.Status)
+
+		ed25519Public, _, err := ed25519.GenerateKey(nil)
+		require.NoError(t, err, "generate ed25519")
+
+		err = user.NewEd25519(
+			context.Background(),
+			conn.Conn(),
+			*versionKey,
+			hex.EncodeToString(ed25519Public),
+		)
+
+		require.NoError(t, err, "new ed25519")
+		require.Equal(t, hex.EncodeToString(ed25519Public),
+			user.Ed25519Public, "ed25519_public")
+		require.True(t, mtime <= user.Mtime, "mtime")
+		require.NotEqual(t, signature, user.Signature, "signature")
+
+		readUser, err := Read(
+			context.Background(),
+			conn.Conn(),
+			st.EncryptionKeys,
+			user.ID,
+		)
+
+		require.NoError(t, err, "read")
+		require.Equal(t, *user, *readUser, "round trip")
+	})
+}
+
 func TestUpdateStatus(t *testing.T) {
 	t.Run("OK", func(t *testing.T) {
 		t.Parallel()
