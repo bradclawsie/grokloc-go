@@ -6,14 +6,13 @@ package user
 
 import (
 	"context"
-	"crypto/ed25519"
-	"encoding/hex"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"grokloc.com/pkg/model/role"
 	"grokloc.com/pkg/security/crypt"
 	"grokloc.com/pkg/security/digest"
+	"grokloc.com/pkg/security/ed25519"
 	"grokloc.com/pkg/security/key"
 	"grokloc.com/pkg/security/password"
 )
@@ -61,6 +60,11 @@ func Insert(
 	schemaVersion int,
 	status int,
 ) (*User, error) {
+	_, err := ed25519.ImportPublicPEM(ed25519Public)
+	if err != nil {
+		return nil, err
+	}
+
 	encryptedDisplayName, err := crypt.Encrypt(displayName, versionedKey.Key)
 	if err != nil {
 		return nil, err
@@ -179,6 +183,11 @@ func (u *User) NewEd25519(
 	versionedKey key.Versioned,
 	ed25519Public string,
 ) error {
+	_, err := ed25519.ImportPublicPEM(ed25519Public)
+	if err != nil {
+		return err
+	}
+
 	encryptedEd25519Public, err := crypt.Encrypt(ed25519Public, versionedKey.Key)
 	if err != nil {
 		return err
@@ -232,7 +241,7 @@ func ForTest(
 	org uuid.UUID,
 	status int,
 ) *User {
-	ed25519Public, _, err := ed25519.GenerateKey(nil)
+	ed25519PublicPEM, _, err := ed25519.Random()
 	if err != nil {
 		panic(err.Error())
 	}
@@ -241,7 +250,7 @@ func ForTest(
 		conn,
 		versionKey,
 		uuid.NewString(), // display name
-		hex.EncodeToString(ed25519Public),
+		ed25519PublicPEM,
 		uuid.NewString(),  // email
 		uuid.New(),        // org
 		password.Random(), // password

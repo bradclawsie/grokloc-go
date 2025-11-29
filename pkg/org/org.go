@@ -6,14 +6,13 @@ package org
 
 import (
 	"context"
-	"crypto/ed25519"
-	"encoding/hex"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"grokloc.com/pkg/model/role"
 	pkg_status "grokloc.com/pkg/model/status"
 	"grokloc.com/pkg/postgresql"
+	"grokloc.com/pkg/security/ed25519"
 	"grokloc.com/pkg/security/key"
 	"grokloc.com/pkg/security/password"
 	"grokloc.com/pkg/user"
@@ -154,7 +153,7 @@ func ForTest(
 	ownerVersionKey key.Versioned,
 	status int,
 ) (*Org, *user.User) {
-	ownerEd25519Public, _, err := ed25519.GenerateKey(nil)
+	ownerEd25519PublicPEM, _, err := ed25519.Random()
 	if err != nil {
 		panic(err.Error())
 	}
@@ -164,7 +163,7 @@ func ForTest(
 		uuid.NewString(),
 		ownerVersionKey,
 		uuid.NewString(), // owner display name
-		hex.EncodeToString(ownerEd25519Public),
+		ownerEd25519PublicPEM,
 		uuid.NewString(),  // owner email
 		password.Random(), // password
 		role.Test,
