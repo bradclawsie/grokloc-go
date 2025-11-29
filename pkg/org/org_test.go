@@ -6,8 +6,6 @@ package org
 
 import (
 	"context"
-	"crypto/ed25519"
-	"encoding/hex"
 	"log"
 	"testing"
 	"time"
@@ -19,6 +17,7 @@ import (
 	"grokloc.com/pkg/model/status"
 	"grokloc.com/pkg/postgresql"
 	"grokloc.com/pkg/runtime"
+	"grokloc.com/pkg/security/ed25519"
 	"grokloc.com/pkg/security/password"
 )
 
@@ -40,9 +39,9 @@ func TestInsert(t *testing.T) {
 		require.NoError(t, err, "master conn")
 		defer conn.Release()
 
-		ownerEd25519Public, _, err := ed25519.GenerateKey(nil)
+		ownerEd25519PublicPEM, _, err := ed25519.Random()
 		require.NoError(t, err, "generate ed25519")
-		require.NotEqual(t, "", ownerEd25519Public, "rm")
+		require.NotEqual(t, "", ownerEd25519PublicPEM, "rm")
 
 		name := uuid.NewString()
 		ownerVersionKey, err := st.EncryptionKeys.Get(st.EncryptionKeyVersion)
@@ -58,7 +57,7 @@ func TestInsert(t *testing.T) {
 			name,
 			*ownerVersionKey,
 			ownerDisplayName,
-			hex.EncodeToString(ownerEd25519Public),
+			ownerEd25519PublicPEM,
 			ownerEmail,
 			ownerPassword,
 			role.Test,
@@ -92,9 +91,9 @@ func TestInsert(t *testing.T) {
 		require.NoError(t, err, "master conn")
 		defer conn.Release()
 
-		ownerEd25519Public, _, err := ed25519.GenerateKey(nil)
+		ownerEd25519PublicPEM, _, err := ed25519.Random()
 		require.NoError(t, err, "generate ed25519")
-		require.NotEqual(t, "", ownerEd25519Public, "rm")
+		require.NotEqual(t, "", ownerEd25519PublicPEM, "rm")
 
 		name := uuid.NewString()
 		ownerVersionKey, err := st.EncryptionKeys.Get(st.EncryptionKeyVersion)
@@ -106,7 +105,7 @@ func TestInsert(t *testing.T) {
 			name,
 			*ownerVersionKey,
 			uuid.NewString(),
-			hex.EncodeToString(ownerEd25519Public),
+			ownerEd25519PublicPEM,
 			uuid.NewString(),
 			uuid.NewString(),
 			role.Test,
@@ -122,7 +121,7 @@ func TestInsert(t *testing.T) {
 			name,
 			*ownerVersionKey,
 			uuid.NewString(),
-			hex.EncodeToString(ownerEd25519Public),
+			ownerEd25519PublicPEM,
 			uuid.NewString(),
 			uuid.NewString(),
 			role.Test,

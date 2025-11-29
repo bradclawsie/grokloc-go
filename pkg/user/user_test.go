@@ -6,8 +6,6 @@ package user
 
 import (
 	"context"
-	"crypto/ed25519"
-	"encoding/hex"
 	"log"
 	"testing"
 	"time"
@@ -20,6 +18,7 @@ import (
 	"grokloc.com/pkg/postgresql"
 	"grokloc.com/pkg/runtime"
 	"grokloc.com/pkg/security/digest"
+	"grokloc.com/pkg/security/ed25519"
 	"grokloc.com/pkg/security/key"
 	"grokloc.com/pkg/security/password"
 )
@@ -42,7 +41,7 @@ func TestInsert(t *testing.T) {
 		require.NoError(t, err, "master conn")
 		defer conn.Release()
 
-		ed25519Public, _, err := ed25519.GenerateKey(nil)
+		ed25519PublicPEM, _, err := ed25519.Random()
 		require.NoError(t, err, "generate ed25519")
 
 		displayName := uuid.NewString()
@@ -58,7 +57,7 @@ func TestInsert(t *testing.T) {
 			conn.Conn(),
 			*versionKey,
 			displayName,
-			hex.EncodeToString(ed25519Public),
+			ed25519PublicPEM,
 			email,
 			org,
 			password,
@@ -72,10 +71,10 @@ func TestInsert(t *testing.T) {
 		require.Equal(t, displayName, user.DisplayName, "display name")
 		require.Equal(t, digest.SHA256Hex(displayName),
 			user.DisplayNameDigest, "display name digest")
-		require.Equal(t, hex.EncodeToString(ed25519Public),
+		require.Equal(t, ed25519PublicPEM,
 			user.Ed25519Public, "ed25519Public")
 		require.Equal(t,
-			digest.SHA256Hex(hex.EncodeToString(ed25519Public)),
+			digest.SHA256Hex(ed25519PublicPEM),
 			user.Ed25519PublicDigest, "ed25519Public digest")
 		require.Equal(t, email, user.Email, "email")
 		require.Equal(t, digest.SHA256Hex(email),
@@ -101,7 +100,7 @@ func TestInsert(t *testing.T) {
 		require.NoError(t, err, "master conn")
 		defer conn.Release()
 
-		ed25519Public, _, err := ed25519.GenerateKey(nil)
+		ed25519PublicPEM, _, err := ed25519.Random()
 		require.NoError(t, err, "generate ed25519")
 		versionKey, err := st.EncryptionKeys.Get(st.EncryptionKeyVersion)
 		require.NoError(t, err, "versionKey")
@@ -111,7 +110,7 @@ func TestInsert(t *testing.T) {
 			conn.Conn(),
 			*versionKey,
 			uuid.NewString(), // display name
-			hex.EncodeToString(ed25519Public),
+			ed25519PublicPEM,
 			uuid.NewString(),  // email
 			uuid.New(),        // org
 			password.Random(), // password
@@ -128,7 +127,7 @@ func TestInsert(t *testing.T) {
 			conn.Conn(),
 			*versionKey,
 			uuid.NewString(), // display name
-			hex.EncodeToString(ed25519Public),
+			ed25519PublicPEM,
 			uuid.NewString(), // email
 			user.Org,
 			password.Random(), // password
@@ -143,7 +142,7 @@ func TestInsert(t *testing.T) {
 		// Conflict when email is used twice in user.Org.
 
 		// Get a new ed25519Pub so that conflict won't trigger.
-		ed25519Public, _, err = ed25519.GenerateKey(nil)
+		ed25519PublicPEM, _, err = ed25519.Random()
 		require.NoError(t, err, "generate ed25519")
 
 		_, err = Insert(
@@ -151,7 +150,7 @@ func TestInsert(t *testing.T) {
 			conn.Conn(),
 			*versionKey,
 			uuid.NewString(), // display name
-			hex.EncodeToString(ed25519Public),
+			ed25519PublicPEM,
 			user.Email,
 			user.Org,
 			password.Random(), // password
@@ -263,18 +262,18 @@ func TestNewEd25519(t *testing.T) {
 		signature := user.Signature
 		require.Equal(t, status.Active, user.Status)
 
-		ed25519Public, _, err := ed25519.GenerateKey(nil)
+		ed25519PublicPEM, _, err := ed25519.Random()
 		require.NoError(t, err, "generate ed25519")
 
 		err = user.NewEd25519(
 			context.Background(),
 			conn.Conn(),
 			*versionKey,
-			hex.EncodeToString(ed25519Public),
+			ed25519PublicPEM,
 		)
 
 		require.NoError(t, err, "new ed25519")
-		require.Equal(t, hex.EncodeToString(ed25519Public),
+		require.Equal(t, ed25519PublicPEM,
 			user.Ed25519Public, "ed25519_public")
 		require.True(t, mtime <= user.Mtime, "mtime")
 		require.NotEqual(t, signature, user.Signature, "signature")
