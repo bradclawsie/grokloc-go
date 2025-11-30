@@ -126,10 +126,12 @@ func Read(
 	if err != nil {
 		return nil, err
 	}
+
 	org, err := pgx.CollectOneRow(rows, pgx.RowToStructByName[Org])
 	if err != nil {
 		return nil, err
 	}
+
 	return &org, nil
 }
 
@@ -143,7 +145,17 @@ func (o *Org) UpdateStatus(
 		where id = $2
 		returning mtime, signature, status`
 
-	return conn.QueryRow(ctx, query, status, o.ID).Scan(&o.Mtime, &o.Signature, &o.Status)
+	return conn.QueryRow(
+		ctx,
+		query,
+		status,
+		o.ID,
+	).
+		Scan(
+			&o.Mtime,
+			&o.Signature,
+			&o.Status,
+		)
 }
 
 // ForTest creates a new instance of a Org for test automation only.
@@ -157,6 +169,7 @@ func ForTest(
 	if err != nil {
 		panic(err.Error())
 	}
+
 	org, owner, err := Insert(
 		context.Background(),
 		conn,
@@ -173,5 +186,6 @@ func ForTest(
 	if err != nil {
 		panic(err.Error())
 	}
+
 	return org, owner
 }

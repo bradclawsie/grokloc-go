@@ -268,7 +268,7 @@ func TestNewEd25519(t *testing.T) {
 		err = user.NewEd25519(
 			context.Background(),
 			conn.Conn(),
-			*versionKey,
+			st.EncryptionKeys,
 			ed25519PublicPEM,
 		)
 
@@ -287,6 +287,120 @@ func TestNewEd25519(t *testing.T) {
 
 		require.NoError(t, err, "read")
 		require.Equal(t, *user, *readUser, "round trip")
+	})
+
+	t.Run("KeyNotFound", func(t *testing.T) {
+		t.Parallel()
+		conn, err := st.Master.Acquire(context.Background())
+		require.NoError(t, err, "master conn")
+		defer conn.Release()
+
+		versionKey, err := st.EncryptionKeys.Get(st.EncryptionKeyVersion)
+		require.NoError(t, err, "versionKey")
+
+		user := ForTest(
+			context.Background(),
+			conn.Conn(),
+			*versionKey,
+			uuid.New(),
+			status.Active,
+		)
+
+		ed25519PublicPEM, _, err := ed25519.Random()
+		require.NoError(t, err, "generate ed25519")
+
+		// Decryption key will not be found in empty map.
+		emptyEncryptionKeys := make(key.VersionedMap)
+
+		err = user.NewEd25519(
+			context.Background(),
+			conn.Conn(),
+			emptyEncryptionKeys,
+			ed25519PublicPEM,
+		)
+
+		require.Error(t, err, "empty keys")
+		require.Equal(t, err, key.ErrNotFound, "not found")
+	})
+}
+
+func TestUpdateDisplayName(t *testing.T) {
+	t.Run("OK", func(t *testing.T) {
+		t.Parallel()
+		conn, err := st.Master.Acquire(context.Background())
+		require.NoError(t, err, "master conn")
+		defer conn.Release()
+
+		versionKey, err := st.EncryptionKeys.Get(st.EncryptionKeyVersion)
+		require.NoError(t, err, "versionKey")
+
+		user := ForTest(
+			context.Background(),
+			conn.Conn(),
+			*versionKey,
+			uuid.New(),
+			status.Active,
+		)
+
+		mtime := user.Mtime
+		signature := user.Signature
+		require.Equal(t, status.Active, user.Status)
+
+		displayName := uuid.NewString()
+
+		err = user.UpdateDisplayName(
+			context.Background(),
+			conn.Conn(),
+			st.EncryptionKeys,
+			displayName,
+		)
+
+		require.NoError(t, err, "update display name")
+		require.Equal(t, displayName,
+			user.DisplayName, "displayName")
+		require.True(t, mtime <= user.Mtime, "mtime")
+		require.NotEqual(t, signature, user.Signature, "signature")
+
+		readUser, err := Read(
+			context.Background(),
+			conn.Conn(),
+			st.EncryptionKeys,
+			user.ID,
+		)
+
+		require.NoError(t, err, "read")
+		require.Equal(t, *user, *readUser, "round trip")
+	})
+
+	t.Run("KeyNotFound", func(t *testing.T) {
+		t.Parallel()
+		conn, err := st.Master.Acquire(context.Background())
+		require.NoError(t, err, "master conn")
+		defer conn.Release()
+
+		versionKey, err := st.EncryptionKeys.Get(st.EncryptionKeyVersion)
+		require.NoError(t, err, "versionKey")
+
+		user := ForTest(
+			context.Background(),
+			conn.Conn(),
+			*versionKey,
+			uuid.New(),
+			status.Active,
+		)
+
+		// Decryption key will not be found in empty map.
+		emptyEncryptionKeys := make(key.VersionedMap)
+
+		err = user.UpdateDisplayName(
+			context.Background(),
+			conn.Conn(),
+			emptyEncryptionKeys,
+			uuid.NewString(),
+		)
+
+		require.Error(t, err, "empty keys")
+		require.Equal(t, err, key.ErrNotFound, "not found")
 	})
 }
 
