@@ -69,10 +69,12 @@ func Insert(
 	if err != nil {
 		return nil, err
 	}
+
 	encryptedEd25519Public, err := crypt.Encrypt(ed25519Public, versionedKey.Key)
 	if err != nil {
 		return nil, err
 	}
+
 	encryptedEmail, err := crypt.Encrypt(email, versionedKey.Key)
 	if err != nil {
 		return nil, err
@@ -177,13 +179,19 @@ func Read(
 	return &user, nil
 }
 
+// NewEd25519 replaces the Ed25519 public key and encrypts it in the db.
 func (u *User) NewEd25519(
 	ctx context.Context,
 	conn *pgx.Conn,
-	versionedKey key.Versioned,
+	m key.VersionedMap,
 	ed25519Public string,
 ) error {
 	_, err := ed25519.ImportPublicPEM(ed25519Public)
+	if err != nil {
+		return err
+	}
+
+	versionedKey, err := m.Get(u.KeyVersion)
 	if err != nil {
 		return err
 	}
@@ -211,12 +219,54 @@ func (u *User) NewEd25519(
 			&u.Signature,
 			&u.Ed25519PublicDigest,
 		)
-
 	if err != nil {
 		return err
 	}
 
 	u.Ed25519Public = ed25519Public
+	return nil
+}
+
+// UpdateDisplayName replaces the display name and encrypts it in the db.
+func (u *User) UpdateDisplayName(
+	ctx context.Context,
+	conn *pgx.Conn,
+	m key.VersionedMap,
+	displayName string,
+) error {
+	versionedKey, err := m.Get(u.KeyVersion)
+	if err != nil {
+		return err
+	}
+
+	encryptedDisplayName, err := crypt.Encrypt(displayName, versionedKey.Key)
+	if err != nil {
+		return err
+	}
+
+	const query = `update users 
+		set display_name = $1,
+		display_name_digest = $2
+		where id = $3
+		returning mtime, signature, display_name_digest`
+
+	err = conn.QueryRow(
+		ctx,
+		query,
+		encryptedDisplayName,
+		digest.SHA256Hex(displayName),
+		u.ID,
+	).
+		Scan(
+			&u.Mtime,
+			&u.Signature,
+			&u.DisplayNameDigest,
+		)
+	if err != nil {
+		return err
+	}
+
+	u.DisplayName = displayName
 	return nil
 }
 
@@ -230,7 +280,17 @@ func (u *User) UpdateStatus(
 		where id = $2
 		returning mtime, signature, status`
 
-	return conn.QueryRow(ctx, query, status, u.ID).Scan(&u.Mtime, &u.Signature, &u.Status)
+	return conn.QueryRow(
+		ctx,
+		query,
+		status,
+		u.ID,
+	).
+		Scan(
+			&u.Mtime,
+			&u.Signature,
+			&u.Status,
+		)
 }
 
 // ForTest creates a new instance of a User for test automation only.
@@ -261,5 +321,6 @@ func ForTest(
 	if err != nil {
 		panic(err.Error())
 	}
+
 	return u
 }
