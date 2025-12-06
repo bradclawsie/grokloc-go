@@ -270,6 +270,30 @@ func (u *User) UpdateDisplayName(
 	return nil
 }
 
+// UpdatePassword replaces the password. Password is Argon2-formatted.
+func (u *User) UpdatePassword(
+	ctx context.Context,
+	conn *pgx.Conn,
+	password string,
+) error {
+	const query = `update users 
+		set password = $1
+		where id = $2
+		returning mtime, signature, password`
+
+	return conn.QueryRow(
+		ctx,
+		query,
+		password,
+		u.ID,
+	).
+		Scan(
+			&u.Mtime,
+			&u.Signature,
+			&u.Password,
+		)
+}
+
 func (u *User) UpdateStatus(
 	ctx context.Context,
 	conn *pgx.Conn,
