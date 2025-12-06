@@ -404,6 +404,53 @@ func TestUpdateDisplayName(t *testing.T) {
 	})
 }
 
+func TestUpdatePassword(t *testing.T) {
+	t.Run("OK", func(t *testing.T) {
+		t.Parallel()
+		conn, err := st.Master.Acquire(context.Background())
+		require.NoError(t, err, "master conn")
+		defer conn.Release()
+
+		versionKey, err := st.EncryptionKeys.Get(st.EncryptionKeyVersion)
+		require.NoError(t, err, "versionKey")
+
+		user := ForTest(
+			context.Background(),
+			conn.Conn(),
+			*versionKey,
+			uuid.New(),
+			status.Active,
+		)
+
+		mtime := user.Mtime
+		signature := user.Signature
+		require.Equal(t, status.Active, user.Status)
+
+		pw := password.Random()
+
+		err = user.UpdatePassword(
+			context.Background(),
+			conn.Conn(),
+			pw,
+		)
+
+		require.NoError(t, err, "update password")
+		require.Equal(t, pw, user.Password, "password")
+		require.True(t, mtime <= user.Mtime, "mtime")
+		require.NotEqual(t, signature, user.Signature, "signature")
+
+		readUser, err := Read(
+			context.Background(),
+			conn.Conn(),
+			st.EncryptionKeys,
+			user.ID,
+		)
+
+		require.NoError(t, err, "read")
+		require.Equal(t, *user, *readUser, "round trip")
+	})
+}
+
 func TestUpdateStatus(t *testing.T) {
 	t.Run("OK", func(t *testing.T) {
 		t.Parallel()
