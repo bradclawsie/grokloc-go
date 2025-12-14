@@ -1,16 +1,10 @@
 image: archlinux
 environment:
   PATH: $HOME/go/bin:/usr/local/sbin:/usr/local/bin:/usr/bin
-packages:
-  - curl
-  - go
-  - golangci-lint
-  - just
-  - postgresql
-  - postgresql-libs
-  - staticcheck
-  - sudo
 tasks:
+  - arch: |
+      sudo pacman -Syu --noconfirm
+      sudo pacman -S --noconfirm curl go golangci-lint just postgresql postgresql-libs staticcheck
   - services: |
       pushd grokloc-go
       sudo just initdb
