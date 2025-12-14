@@ -317,6 +317,52 @@ func (u *User) UpdateStatus(
 		)
 }
 
+// ReEncrypt changes the encrypted values for PII fields and updates the
+// instance key version.
+func (u *User) ReEncrypt(
+	ctx context.Context,
+	conn *pgx.Conn,
+	versionedKey key.Versioned,
+) error {
+	encryptedDisplayName, err := crypt.Encrypt(u.DisplayName, versionedKey.Key)
+	if err != nil {
+		return err
+	}
+
+	encryptedEd25519Public, err := crypt.Encrypt(u.Ed25519Public, versionedKey.Key)
+	if err != nil {
+		return err
+	}
+
+	encryptedEmail, err := crypt.Encrypt(u.Email, versionedKey.Key)
+	if err != nil {
+		return err
+	}
+
+	const query = `update users 
+		set display_name = $1,
+		ed25519_public = $2,
+		email = $3,
+		key_version = $4
+		where id = $5
+		returning mtime, signature, key_version`
+
+	return conn.QueryRow(
+		ctx,
+		query,
+		encryptedDisplayName,
+		encryptedEd25519Public,
+		encryptedEmail,
+		versionedKey.Version,
+		u.ID,
+	).
+		Scan(
+			&u.Mtime,
+			&u.Signature,
+			&u.KeyVersion,
+		)
+}
+
 // ForTest creates a new instance of a User for test automation only.
 func ForTest(
 	ctx context.Context,
