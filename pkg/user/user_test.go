@@ -523,3 +523,67 @@ func TestUpdateStatus(t *testing.T) {
 		require.Equal(t, status, user.Status, "status unchanged")
 	})
 }
+
+func TestReEncrypt(t *testing.T) {
+	t.Run("OK", func(t *testing.T) {
+		t.Parallel()
+		conn, err := st.Master.Acquire(context.Background())
+		require.NoError(t, err, "master conn")
+		defer conn.Release()
+
+		versionKey, err := st.EncryptionKeys.Get(st.EncryptionKeyVersion)
+		require.NoError(t, err, "versionKey")
+
+		user := ForTest(
+			context.Background(),
+			conn.Conn(),
+			*versionKey,
+			uuid.New(),
+			status.Active,
+		)
+
+		mtime := user.Mtime
+		signature := user.Signature
+		require.Equal(t, status.Active, user.Status)
+
+		// Find a key in the version map that isn't the one currently used.
+		var newKeyVersion uuid.UUID
+		foundNewKeyVersion := false
+		for keyVersion := range st.EncryptionKeys {
+			if keyVersion != user.KeyVersion {
+				newKeyVersion = keyVersion
+				foundNewKeyVersion = true
+				break
+			}
+		}
+
+		require.True(t, foundNewKeyVersion, "new key version")
+		require.NotEqual(t, newKeyVersion, user.KeyVersion, "new key version")
+
+		versionKey, err = st.EncryptionKeys.Get(newKeyVersion)
+		require.NoError(t, err, "versionKey")
+
+		err = user.ReEncrypt(
+			context.Background(),
+			conn.Conn(),
+			*versionKey,
+		)
+
+		require.NoError(t, err, "re-encrypt")
+		require.Equal(t, versionKey.Version,
+			user.KeyVersion, "key version")
+		require.True(t, mtime <= user.Mtime, "mtime")
+		require.NotEqual(t, signature, user.Signature, "signature")
+
+		readUser, err := Read(
+			context.Background(),
+			conn.Conn(),
+			st.EncryptionKeys,
+			user.ID,
+		)
+
+		require.NoError(t, err, "read")
+		require.Equal(t, *user, *readUser, "round trip")
+	})
+
+}
